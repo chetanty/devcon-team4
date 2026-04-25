@@ -1,11 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
 
-const OPTION_LABELS = ['1', '2', '3', '4']
+const OPTION_LABELS = ['A', 'B', 'C', 'D']
 
-function LessonCard({ question, questionNumber, totalQuestions, onAnswer, onAdvance }) {
+const DEFAULT_T = {
+  question: 'Question',
+  of: 'of',
+  correct: '✅ Correct!',
+  incorrect: '❌ Wrong!',
+  correctAnswer: 'Correct answer:',
+}
+
+function LessonCard({
+  question,
+  questionNumber,
+  totalQuestions,
+  onAnswer,
+  onAdvance,
+  t,
+}) {
+  const translations = t || DEFAULT_T
   const [selectedIndex, setSelectedIndex] = useState(null)
   const [isCorrect, setIsCorrect] = useState(false)
   const timerRef = useRef(null)
+
+  useEffect(() => {
+    setSelectedIndex(null)
+    setIsCorrect(false)
+
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }, [question?.id, question?.question])
 
   useEffect(() => {
     return () => {
@@ -15,51 +41,41 @@ function LessonCard({ question, questionNumber, totalQuestions, onAnswer, onAdva
     }
   }, [])
 
-  if (!question) {
+  if (!question || !question.options || question.options.length === 0) {
     return null
   }
 
   const handleOptionClick = (optionIndex) => {
-    if (selectedIndex !== null) {
-      return
-    }
+    if (selectedIndex !== null) return
 
     const answerIsCorrect = optionIndex === question.correct
-
     setSelectedIndex(optionIndex)
     setIsCorrect(answerIsCorrect)
-    onAnswer?.(answerIsCorrect)
+
+    if (onAnswer) onAnswer(answerIsCorrect)
 
     timerRef.current = window.setTimeout(() => {
-      onAdvance?.()
-    }, 1700)
+      if (onAdvance) onAdvance()
+    }, 1500)
   }
 
-  const getClassName = (optionIndex) => {
-    if (selectedIndex === null) {
-      return 'lesson-option'
-    }
-
+  const getButtonClassName = (optionIndex) => {
+    if (selectedIndex === null) return 'lesson-option'
     if (optionIndex === question.correct) {
       return 'lesson-option is-correct'
     }
-
-    if (optionIndex === selectedIndex) {
-      return 'lesson-option is-wrong'
-    }
-
-    return 'lesson-option is-muted'
+    if (optionIndex === selectedIndex) return 'lesson-option is-wrong flash-red'
+    return 'lesson-option is-disabled'
   }
 
   const correctLabel = OPTION_LABELS[question.correct] || ''
   const correctAnswer = question.options[question.correct] || ''
 
   return (
-    <section className="surface-card lesson-card">
-      <div className="lesson-hero">
-        <div className="prompt-emblem" aria-hidden="true">
-          <span>🛡️</span>
-        </div>
+    <section className="lesson-card">
+      <p className="lesson-progress">
+        {translations.question} {questionNumber} {translations.of} {totalQuestions}
+      </p>
 
         <div>
           <p className="lesson-progress">
@@ -73,7 +89,7 @@ function LessonCard({ question, questionNumber, totalQuestions, onAnswer, onAdva
       <div className="lesson-options" role="group" aria-label="Answer options">
         {question.options.map((option, optionIndex) => (
           <button
-            key={`${question.id}-${optionIndex}-${option}`}
+            key={`${optionIndex}-${option}`}
             type="button"
             className={getClassName(optionIndex)}
             onClick={() => handleOptionClick(optionIndex)}
@@ -90,10 +106,12 @@ function LessonCard({ question, questionNumber, totalQuestions, onAnswer, onAdva
 
       {selectedIndex !== null ? (
         <div className={`lesson-feedback ${isCorrect ? 'correct' : 'wrong'}`}>
-          <p className="feedback-title">{isCorrect ? 'Correct. Nice work.' : 'Not quite.'}</p>
+          <p className="feedback-title">
+            {isCorrect ? translations.correct : translations.incorrect}
+          </p>
           {!isCorrect ? (
             <p className="feedback-line">
-              Best answer: {correctLabel} - {correctAnswer}
+              {translations.correctAnswer} {correctLabel}) {correctText}
             </p>
           ) : null}
           <p className="feedback-line">{question.explanation}</p>
