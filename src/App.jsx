@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import LessonCard from './components/LessonCard'
 import questions from './questions.json'
 import './App.css'
+import translations from './translations.js'
 
 const API_URL = import.meta.env.VITE_API_URL?.trim() ?? ''
 
@@ -15,17 +16,11 @@ const STORAGE_KEYS = {
 
 const LANGUAGES = [
   { code: 'english', label: 'English', flag: '🇨🇦' },
-  { code: 'filipino', label: 'Filipino', flag: '🇵🇭' },
-  { code: 'hindi', label: 'Hindi', flag: '🇮🇳' },
-  { code: 'chinese', label: 'Chinese', flag: '🇨🇳' },
+  { code: 'tagalog', label: 'Tagalog', flag: '🇵🇭' },
+  { code: 'french', label: 'French', flag: '🇫🇷' },
+  { code: 'german', label: 'German', flag: '🇩🇪' },
   { code: 'spanish', label: 'Spanish', flag: '🇪🇸' },
 ]
-
-const MODE_META = {
-  explain: { label: '📘 Explain', loading: 'Explaining...' },
-  quiz: { label: '📝 Quiz Me', loading: 'Building Quiz...' },
-  scenario: { label: '🎭 Scenario Practice', loading: 'Creating Scenario...' },
-}
 
 function getChatEndpoint(apiUrl) {
   if (!apiUrl) {
@@ -71,6 +66,17 @@ function App() {
       return ''
     }
   })
+
+  const t = translations[selectedLanguage] || translations.english
+
+  const MODE_META = useMemo(
+    () => ({
+      explain: { label: t.explain, loading: t.explaining },
+      quiz: { label: t.quiz, loading: t.buildingQuiz },
+      scenario: { label: t.scenario, loading: t.creatingScenario },
+    }),
+    [t],
+  )
 
   const [xp, setXp] = useState(() => readStoredInteger(STORAGE_KEYS.xp, 0, 0, 99))
   const [level, setLevel] = useState(() => readStoredInteger(STORAGE_KEYS.level, 1, 1, 9999))
@@ -171,10 +177,10 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          mode,
-          topic: cleanTopic,
-        }),
+       body: JSON.stringify({
+                message: `${mode}: ${cleanTopic}`,
+                language: selectedLanguage || 'english',
+              }),
       })
 
       const data = await response.json().catch(() => ({}))
@@ -257,7 +263,7 @@ function App() {
       <main className="language-screen">
         <section className="language-card">
           <h1>GuardBuddy AI</h1>
-          <p className="landing-tagline">Choose your language</p>
+          <p className="landing-tagline">{t.chooseLanguage}</p>
 
           <div className="language-grid">
             {LANGUAGES.map((language) => (
@@ -285,7 +291,7 @@ function App() {
         <header className="top-status-row">
           <section className="xp-area" aria-label="XP">
             <div className="xp-text-row">
-              <span className="level-text">Level {level}</span>
+              <span className="level-text">{t.level} {level}</span>
               <span className="xp-text">{xp}/100 XP</span>
             </div>
             <div className="xp-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={xp}>
@@ -305,7 +311,7 @@ function App() {
         <header className="title-row">
           <div>
             <h1>GuardBuddy AI</h1>
-            <p className="subtitle">Your AI trainer for Alberta Security Guard exam</p>
+            <p className="subtitle">{t.appTagline}</p>
           </div>
           <button
             type="button"
@@ -315,7 +321,7 @@ function App() {
             title="Change language"
           >
             {activeLanguage?.flag} {activeLanguage?.label}
-            <span className="language-chip-action">Change</span>
+            <span className="language-chip-action">{t.change}</span>
           </button>
         </header>
 
@@ -325,23 +331,23 @@ function App() {
             className={`tab-button ${activeTab === 'lesson' ? 'active' : ''}`}
             onClick={() => setActiveTab('lesson')}
           >
-            Lesson Mode
+            {t.lessonMode}
           </button>
           <button
             type="button"
             className={`tab-button ${activeTab === 'aiTutor' ? 'active' : ''}`}
             onClick={() => setActiveTab('aiTutor')}
           >
-            AI Tutor
+            {t.aiTutor}
           </button>
         </nav>
 
         {gameOver ? (
           <section className="game-over-card">
-            <h2>Game Over</h2>
-            <p>You ran out of hearts. Restart to continue the lesson.</p>
+            <h2>{t.gameOver}</h2>
+            <p>{t.gameOverMsg}</p>
             <button type="button" className="restart-button" onClick={handleRestartAfterGameOver}>
-              Restart
+              {t.restart}
             </button>
           </section>
         ) : null}
@@ -354,22 +360,23 @@ function App() {
               totalQuestions={totalQuestions}
               onAnswer={handleQuestionAnswered}
               onAdvance={handleQuestionAdvance}
+              t={t}
             />
           ) : (
-            <section className="empty-state">No questions available yet.</section>
+            <section className="empty-state">{t.noQuestions}</section>
           )
         ) : null}
 
         {!gameOver && activeTab === 'aiTutor' ? (
           <section className="ai-tutor-section">
             <label htmlFor="topic" className="label">
-              Topic
+              {t.topic}
             </label>
             <input
               id="topic"
               className="topic-input"
               type="text"
-              placeholder="Example: arrest authority"
+              placeholder={t.topicPlaceholder}
               value={topic}
               onChange={(event) => setTopic(event.target.value)}
               disabled={loading}
@@ -396,7 +403,7 @@ function App() {
               ))}
             </div>
 
-            {loading ? <p className="status">GuardBuddy is generating your response...</p> : null}
+            {loading ? <p className="status">{t.generating}</p> : null}
             {error ? <p className="error">{error}</p> : null}
 
             {answer ? (
@@ -404,7 +411,7 @@ function App() {
                 <div className="answer-header">
                   <div className="answer-title-wrap">
                     {answerIcon ? <span className="answer-icon">{answerIcon}</span> : null}
-                    <h2>AI Response</h2>
+                    <h2>{t.aiResponse}</h2>
                   </div>
                   <span className="mode-chip">{MODE_META[answerMode]?.label || 'Response'}</span>
                 </div>

@@ -8,6 +8,7 @@ function LessonCard({
   totalQuestions,
   onAnswer,
   onAdvance,
+  t,
 }) {
   const [selectedIndex, setSelectedIndex] = useState(null)
   const [isCorrect, setIsCorrect] = useState(false)
@@ -78,7 +79,7 @@ function LessonCard({
   return (
     <section className="lesson-card">
       <p className="lesson-progress">
-        Question {questionNumber} of {totalQuestions}
+        {t.question} {questionNumber} {t.of} {totalQuestions}
       </p>
 
       <h2 className="lesson-question">{question.question}</h2>
@@ -100,10 +101,10 @@ function LessonCard({
 
       {selectedIndex !== null ? (
         <div className={`lesson-feedback ${isCorrect ? 'correct' : 'wrong'}`}>
-          <p className="feedback-title">{isCorrect ? 'Correct! +10 XP' : 'Incorrect answer.'}</p>
+          <p className="feedback-title">{isCorrect ? t.correct : t.incorrect}</p>
           {!isCorrect ? (
             <p className="feedback-line">
-              Correct answer: {correctLabel}) {correctText}
+              {t.correctAnswer} {correctLabel}) {correctText}
             </p>
           ) : null}
           <p className="feedback-line">{question.explanation}</p>
