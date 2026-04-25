@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "question": "What is the main role of a security professional?",
+    "options": [
+      "Arrest anyone acting suspicious",
+      "Observe, deter, and report",
+      "Replace the police",
+      "Give legal advice"
+    ],
+    "correct": 1,
+    "explanation": "The training manual says the core role is to observe, deter, and report. Security guards are not police."
+  },
+  {
+    "id": 2,
+    "question": "When can a security guard arrest under Section 494?",
+    "options": [
+      "Only after a supervisor approves it",
+      "Whenever they think a crime happened",
+      "When they find someone committing an indictable offence or a property-related criminal offence in the allowed circumstances",
+      "Only if they are off duty"
+    ],
+    "correct": 2,
+    "explanation": "A citizen's arrest is limited. The manual stresses that guards only arrest in specific legal situations."
+  },
+  {
+    "id": 3,
+    "question": "What must happen after a security guard makes an arrest?",
+    "options": [
+      "Keep the person until the shift ends",
+      "Deliver the person to a peace officer as soon as possible",
+      "Search the person for every item",
+      "Drive the person home"
+    ],
+    "correct": 1,
+    "explanation": "After arrest, the person must be delivered to a peace officer as soon as possible."
+  },
+  {
+    "id": 4,
+    "question": "How should use of force be described in the manual?",
+    "options": [
+      "Allowed whenever a guard feels unsafe",
+      "Necessary, reasonable, and not excessive",
+      "Always physical before verbal",
+      "The same as police force rules"
+    ],
+    "correct": 1,
+    "explanation": "The manual teaches that any force used must be necessary, reasonable, and not excessive."
+  },
+  {
+    "id": 5,
+    "question": "What makes a good security notebook or report?",
+    "options": [
+      "Objective, accurate, complete, and written promptly",
+      "Short, casual, and based on memory later",
+      "Only written when police ask for it",
+      "Focused mainly on personal opinions"
+    ],
+    "correct": 0,
+    "explanation": "The manual says reports and notebook entries should be accurate, objective, complete, and written as soon as possible."
+  }
+]
