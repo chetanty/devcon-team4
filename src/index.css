@@ -10,8 +10,8 @@
 
 body {
   margin: 0;
-  background: linear-gradient(180deg, #e0f2fe 0%, #f1f5f9 45%, #ffffff 100%);
-  color: #0f172a;
+  background: radial-gradient(circle at top, #153475 0%, #08173c 52%, #04102b 100%);
+  color: #f8fafc;
 }
 
 #root {

@@ -1,29 +1,77 @@
-import React, { useState, useRef } from 'react';
-import { Play, BookOpen } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react'
+import { BookOpen, Play } from 'lucide-react'
+
+const CHAPTER_BREAK_TARGET = 2200
+
+function normalizeManualToChapters(rawText) {
+  if (!rawText) {
+    return []
+  }
+
+  const paragraphs = rawText
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+
+  const chapters = []
+  let runningText = []
+  let runningSize = 0
+  let chapterNumber = 1
+
+  paragraphs.forEach((paragraph) => {
+    const shouldStartNext = runningSize > CHAPTER_BREAK_TARGET && paragraph.length < 90
+    if (shouldStartNext && runningText.length > 0) {
+      chapters.push({
+        id: chapterNumber,
+        title: `Chapter ${chapterNumber}`,
+        text: runningText.join('\n\n'),
+      })
+      chapterNumber += 1
+      runningText = []
+      runningSize = 0
+    }
+    runningText.push(paragraph)
+    runningSize += paragraph.length
+  })
+
+  if (runningText.length > 0) {
+    chapters.push({
+      id: chapterNumber,
+      title: `Chapter ${chapterNumber}`,
+      text: runningText.join('\n\n'),
+    })
+  }
+
+  return chapters
+}
 
 const ManualReader = ({ content, apiUrl, currentLanguage }) => {
-  const [selectedChapter, setSelectedChapter] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const audioRef = useRef(null);
-  const scrollRef = useRef(null);
+  const [selectedChapter, setSelectedChapter] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [readerError, setReaderError] = useState('')
+  const audioRef = useRef(null)
+  const scrollRef = useRef(null)
 
-  // Get the specific chapters for the current language
-  const chapters = content[currentLanguage]?.chapters || [];
-  const currentChapter = chapters[selectedChapter];
+  const chapters = useMemo(() => normalizeManualToChapters(content[currentLanguage] || ''), [content, currentLanguage])
+  const currentChapter = chapters[selectedChapter]
 
-  // Update the progress bar based on scroll position
-  const handleScroll = (e) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.target;
-    const scrolled = (scrollTop / (scrollHeight - clientHeight)) * 100;
-    setProgress(scrolled);
-  };
+  const handleScroll = (event) => {
+    const { scrollTop, scrollHeight, clientHeight } = event.target
+    const maxScroll = Math.max(scrollHeight - clientHeight, 1)
+    const scrolled = Math.min((scrollTop / maxScroll) * 100, 100)
+    setProgress(scrolled)
+  }
 
-  // YOUR PLAY LOGIC
   const playChapter = async () => {
-    if (!currentChapter) return;
-    setIsPlaying(true);
-    
+    if (!currentChapter || !apiUrl) {
+      setReaderError('Audio endpoint is not configured yet.')
+      return
+    }
+
+    setReaderError('')
+    setIsPlaying(true)
+
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -31,73 +79,73 @@ const ManualReader = ({ content, apiUrl, currentLanguage }) => {
         body: JSON.stringify({
           action: 'tts',
           text: currentChapter.text,
-          language: currentLanguage
+          language: currentLanguage,
         }),
-      });
+      })
 
-      const data = await response.json();
-      if (data.isBase64Encoded) {
-        const audioSrc = `data:audio/mpeg;base64,${data.body}`;
-        audioRef.current.src = audioSrc;
-        audioRef.current.play();
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to generate audio')
       }
-    } catch (err) {
-      console.error("Audio failed", err);
-    } finally {
-      setIsPlaying(false);
+      if (!payload.body) {
+        throw new Error('Missing audio data from Polly')
+      }
+
+      const audioSrc = `data:audio/mpeg;base64,${payload.body}`
+      audioRef.current.src = audioSrc
+      await audioRef.current.play()
+    } catch (error) {
+      setReaderError(error.message || 'Audio playback failed')
+      setIsPlaying(false)
     }
-  };
+  }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif' }}>
-      {/* Sidebar */}
-      <aside style={{ width: '280px', borderRight: '1px solid #ddd', overflowY: 'auto', background: '#f9f9f9', padding: '20px' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><BookOpen /> Chapters</h3>
-        {chapters.map((ch, idx) => (
-          <button 
-            key={idx} 
-            onClick={() => { setSelectedChapter(idx); setProgress(0); }}
-            style={{ 
-              display: 'block', width: '100%', textAlign: 'left', padding: '12px', marginBottom: '8px',
-              backgroundColor: selectedChapter === idx ? '#2563eb' : 'white',
-              color: selectedChapter === idx ? 'white' : '#333',
-              borderRadius: '8px', border: '1px solid #ddd', cursor: 'pointer'
-            }}
-          >
-            {idx + 1}. {ch.title}
-          </button>
-        ))}
+    <section className="reader-shell">
+      <aside className="reader-sidebar">
+        <h3 className="reader-title">
+          <BookOpen size={18} /> Chapters
+        </h3>
+        <div className="reader-chapter-list">
+          {chapters.map((chapter, index) => (
+            <button
+              key={chapter.id}
+              type="button"
+              onClick={() => {
+                setSelectedChapter(index)
+                setProgress(0)
+                scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              className={`reader-chapter-button ${selectedChapter === index ? 'active' : ''}`}
+            >
+              {chapter.title}
+            </button>
+          ))}
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ height: '6px', width: '100%', background: '#eee' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: '#2563eb', transition: 'width 0.1s' }} />
+      <main className="reader-content">
+        <div className="reader-progress-track">
+          <div className="reader-progress-fill" style={{ width: `${progress}%` }} />
         </div>
 
-        <div ref={scrollRef} onScroll={handleScroll} style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-            <h1 style={{ margin: 0 }}>{currentChapter?.title}</h1>
-            <button 
-              onClick={playChapter} 
-              disabled={isPlaying}
-              style={{ 
-                padding: '12px 24px', borderRadius: '30px', backgroundColor: '#16a34a', color: 'white', 
-                border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold'
-              }}
-            >
-              <Play size={18} fill="white" /> {isPlaying ? 'Reading...' : 'Listen to Chapter'}
+        <article ref={scrollRef} onScroll={handleScroll} className="reader-scroll-area">
+          <header className="reader-header">
+            <h2>{currentChapter?.title || 'No chapter available'}</h2>
+            <button type="button" onClick={playChapter} disabled={isPlaying || !currentChapter} className="reader-play-button">
+              <Play size={16} /> {isPlaying ? 'Reading...' : 'Play'}
             </button>
           </header>
-          
-          <div style={{ fontSize: '18px', lineHeight: '1.8', color: '#444', maxWidth: '800px' }}>
-            {currentChapter?.text}
-          </div>
-        </div>
-      </main>
-      <audio ref={audioRef} onEnded={() => setIsPlaying(false)} hidden />
-    </div>
-  );
-};
 
-export default ManualReader;
+          {readerError ? <p className="error">{readerError}</p> : null}
+          <p className="reader-progress-label">{Math.round(progress)}% read</p>
+          <div className="reader-text">{currentChapter?.text || 'No text found for this language.'}</div>
+        </article>
+      </main>
+
+      <audio ref={audioRef} onEnded={() => setIsPlaying(false)} onPause={() => setIsPlaying(false)} hidden />
+    </section>
+  )
+}
+
+export default ManualReader

@@ -1,183 +1,361 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import LessonCard from './components/LessonCard'
+import questions from './questions.json'
 import './App.css'
 import ManualReader from './ManualReader'
-import contentData from './content.json' 
+import contentData from './content.json'
 
 const API_URL = import.meta.env.VITE_API_URL?.trim() ?? ''
 
-const LANGUAGE_OPTIONS = [
-  { value: 'english', label: 'English' },
-  { value: 'spanish', label: 'Spanish' },
-  { value: 'french', label: 'French' },
-  { value: 'german', label: 'German' },
-  { value: 'tagalog', label: 'Tagalog' },
-  { value: 'punjabi', label: 'Punjabi' },
+const STORAGE_KEYS = {
+  selectedLanguage: 'selectedLanguage',
+  xp: 'xp',
+  level: 'level',
+  hearts: 'hearts',
+  questionIndex: 'questionIndex',
+}
+
+const LANGUAGES = [
+  { code: 'english', label: 'English', flag: '🇨🇦' },
+  { code: 'french', label: 'French', flag: '🇫🇷' },
+  { code: 'german', label: 'German', flag: '🇩🇪' },
+  { code: 'spanish', label: 'Spanish', flag: '🇪🇸' },
+  { code: 'tagalog', label: 'Tagalog', flag: '🇵🇭' },
+  { code: 'punjabi', label: 'Punjabi', flag: '🇮🇳' },
 ]
 
-const STARTER_QUESTIONS = [
-  'What should a security guard do after making an arrest?',
-  'Explain observe, deter, report in simple terms.',
-  'Give me a practice scenario about use of force.',
-]
-
-const INITIAL_MESSAGE = {
-  id: 'welcome',
-  role: 'assistant',
-  text: 'Ask anything about the Alberta Basic Security manual. I will answer only from the manual and I will reply in your selected language.',
+const MODE_META = {
+  explain: { label: '📘 Explain', loading: 'Explaining...' },
+  quiz: { label: '📝 Quiz Me', loading: 'Building Quiz...' },
+  scenario: { label: '🎭 Scenario Practice', loading: 'Creating Scenario...' },
 }
 
 function getChatEndpoint(apiUrl) {
-  if (!apiUrl) return ''
-  if (apiUrl.endsWith('/chat')) return apiUrl
+  if (!apiUrl) {
+    return ''
+  }
+  if (apiUrl.endsWith('/chat')) {
+    return apiUrl
+  }
   return `${apiUrl.replace(/\/+$/, '')}/chat`
 }
 
-function getLanguageLabel(value) {
-  return LANGUAGE_OPTIONS.find((option) => option.value === value)?.label ?? value
+function isQuizOptionLine(line) {
+  return /^[ABCD]\)\s*/.test(line.trim())
+}
+
+function readStoredInteger(key, fallback, min, max) {
+  try {
+    const rawValue = window.localStorage.getItem(key)
+    if (rawValue === null) {
+      return fallback
+    }
+    const parsedValue = Number.parseInt(rawValue, 10)
+    if (Number.isNaN(parsedValue)) {
+      return fallback
+    }
+    return Math.min(max, Math.max(min, parsedValue))
+  } catch {
+    return fallback
+  }
 }
 
 function App() {
-  // New state for switching between Reader and Chat
-  const [view, setView] = useState('reader') 
-  
-  // Existing Chat States
-  const [isOpen, setIsOpen] = useState(true)
-  const [language, setLanguage] = useState('english')
-  const [input, setInput] = useState('')
-  const [messages, setMessages] = useState([INITIAL_MESSAGE])
+  const [selectedLanguage, setSelectedLanguage] = useState(() => {
+    try {
+      return window.localStorage.getItem(STORAGE_KEYS.selectedLanguage) ?? ''
+    } catch {
+      return ''
+    }
+  })
+  const [xp, setXp] = useState(() => readStoredInteger(STORAGE_KEYS.xp, 0, 0, 99))
+  const [level, setLevel] = useState(() => readStoredInteger(STORAGE_KEYS.level, 1, 1, 9999))
+  const [hearts, setHearts] = useState(() => readStoredInteger(STORAGE_KEYS.hearts, 3, 0, 3))
+  const [questionIndex, setQuestionIndex] = useState(() => {
+    const maxIndex = Math.max(questions.length - 1, 0)
+    return readStoredInteger(STORAGE_KEYS.questionIndex, 0, 0, maxIndex)
+  })
+  const [activeTab, setActiveTab] = useState('reader')
+  const [topic, setTopic] = useState('')
+  const [answer, setAnswer] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [activeMode, setActiveMode] = useState('')
+  const [answerMode, setAnswerMode] = useState('')
 
-  const bottomRef = useRef(null)
-  const nextIdRef = useRef(1)
-  const endpoint = getChatEndpoint(API_URL)
+  const endpoint = useMemo(() => getChatEndpoint(API_URL), [])
+  const totalQuestions = questions.length
+  const gameOver = hearts === 0
 
-  const createMessageId = (prefix) => {
-    const id = nextIdRef.current
-    nextIdRef.current += 1
-    return `${prefix}-${id}`
-  }
+  const activeLanguage = useMemo(
+    () => LANGUAGES.find((language) => language.code === selectedLanguage) ?? null,
+    [selectedLanguage],
+  )
+
+  const currentQuestion = useMemo(() => {
+    if (totalQuestions === 0) {
+      return null
+    }
+    const safeIndex = questionIndex % totalQuestions
+    return questions[safeIndex]
+  }, [questionIndex, totalQuestions])
+
+  const answerBlocks = useMemo(() => {
+    if (!answer) {
+      return []
+    }
+    return answer
+      .split(/\n{2,}/)
+      .map((chunk) => chunk.trim())
+      .filter(Boolean)
+  }, [answer])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading, isOpen])
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.xp, String(xp))
+      window.localStorage.setItem(STORAGE_KEYS.level, String(level))
+      window.localStorage.setItem(STORAGE_KEYS.hearts, String(hearts))
+      window.localStorage.setItem(STORAGE_KEYS.questionIndex, String(questionIndex))
+      if (selectedLanguage) {
+        window.localStorage.setItem(STORAGE_KEYS.selectedLanguage, selectedLanguage)
+      }
+    } catch {
+      // Ignore storage errors so the app still works in restricted environments.
+    }
+  }, [xp, level, hearts, questionIndex, selectedLanguage])
 
-  const sendMessage = async (rawText) => {
-    const cleanText = rawText.trim()
-    if (!cleanText || loading) return
+  const runMode = async (mode) => {
+    const cleanTopic = topic.trim()
+    if (!cleanTopic) {
+      setError('Please enter a topic first.')
+      return
+    }
     if (!endpoint) {
-      setError('Add VITE_API_URL to .env so the chat can reach API Gateway.')
+      setError('VITE_API_URL is missing. Add it to your .env file and restart Vite.')
       return
     }
 
-    const userMessage = { id: createMessageId('user'), role: 'user', text: cleanText }
-    setMessages((current) => [...current, userMessage])
-    setInput('')
-    setError('')
     setLoading(true)
+    setError('')
+    setAnswer('')
+    setActiveMode(mode)
 
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language, message: cleanText }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mode,
+          topic: cleanTopic,
+        }),
       })
       const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.error || 'Chat request failed.')
-      
-      setMessages((current) => [
-        ...current,
-        {
-          id: createMessageId('assistant'),
-          role: 'assistant',
-          text: data.answer,
-          sourceTitles: Array.isArray(data.sourceTitles) ? data.sourceTitles : [],
-          sourceLanguage: data.sourceLanguage || language,
-        },
-      ])
+      if (!response.ok) {
+        throw new Error(data.error || 'Request failed. Please try again.')
+      }
+      if (!data.answer) {
+        throw new Error('Backend returned no answer text.')
+      }
+      setAnswer(data.answer)
     } catch (requestError) {
       setError(requestError.message || 'Something went wrong.')
     } finally {
       setLoading(false)
+      setActiveMode('')
     }
   }
 
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-    await sendMessage(input)
+  const handleQuestionAnswered = (isCorrect) => {
+    if (isCorrect) {
+      setXp((currentXp) => {
+        const nextXp = currentXp + 10
+        if (nextXp >= 100) {
+          setLevel((currentLevel) => currentLevel + 1)
+          return nextXp - 100
+        }
+        return nextXp
+      })
+      return
+    }
+    setHearts((currentHearts) => Math.max(currentHearts - 1, 0))
+  }
+
+  const answerIcon = answerMode === 'explain' ? '📘' : answerMode === 'scenario' ? '🎭' : ''
+
+  if (!selectedLanguage) {
+    return (
+      <main className="language-screen">
+        <section className="language-card">
+          <h1>GuardBuddy AI</h1>
+          <p className="landing-tagline">Choose your language</p>
+          <div className="language-grid">
+            {LANGUAGES.map((language) => (
+              <button
+                key={language.code}
+                type="button"
+                className="language-button"
+                onClick={() => setSelectedLanguage(language.code)}
+              >
+                <span className="language-flag" aria-hidden="true">
+                  {language.flag}
+                </span>
+                <span>{language.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </main>
+    )
   }
 
   return (
     <main className="app-shell">
-      {/* 1. View Switcher Navigation */}
-      <nav className="view-switcher" style={{ display: 'flex', gap: '10px', padding: '10px', background: '#f4f4f4', borderBottom: '1px solid #ddd' }}>
-        <button 
-          className={`nav-btn ${view === 'reader' ? 'active' : ''}`} 
-          onClick={() => setView('reader')}
-          style={{ fontWeight: view === 'reader' ? 'bold' : 'normal' }}
-        >
-          📖 Manual Reader
-        </button>
-        <button 
-          className={`nav-btn ${view === 'chat' ? 'active' : ''}`} 
-          onClick={() => setView('chat')}
-          style={{ fontWeight: view === 'chat' ? 'bold' : 'normal' }}
-        >
-          💬 Study Chat
-        </button>
-      </nav>
-
-      {view === 'reader' ? (
-        /* 2. The Working Reader Page */
-        <ManualReader 
-          content={contentData} 
-          apiUrl={endpoint} 
-          currentLanguage={language} 
-        />
-      ) : (
-        /* 3. The Original Chatbot UI */
-        <>
-          <section className="hero-card">
-            <p className="eyebrow">GuardBuddy AI</p>
-            <h1>Bedrock-powered study bot</h1>
-            <div className="starter-area">
-              <p className="starter-label">Try one of these prompts</p>
-              <div className="starter-list">
-                {STARTER_QUESTIONS.map((q) => (
-                  <button key={q} className="starter-chip" onClick={() => {setIsOpen(true); sendMessage(q)}} disabled={loading}>{q}</button>
-                ))}
-              </div>
+      <section className="app-card">
+        <header className="top-status-row">
+          <section className="xp-area" aria-label="XP">
+            <div className="xp-text-row">
+              <span className="level-text">Level {level}</span>
+              <span className="xp-text">{xp}/100 XP</span>
+            </div>
+            <div className="xp-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={xp}>
+              <div className="xp-fill" style={{ width: `${xp}%` }}></div>
             </div>
           </section>
+          <section className="hearts-area" aria-label="Lives">
+            {[0, 1, 2].map((index) => (
+              <span key={index} className={`heart ${index < hearts ? 'active' : 'empty'}`}>
+                ❤️
+              </span>
+            ))}
+          </section>
+        </header>
 
-          <button type="button" className={`chat-launcher ${isOpen ? 'is-open' : ''}`} onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? 'Hide Tutor' : 'Open Tutor'}
+        <header className="title-row">
+          <div>
+            <h1>GuardBuddy AI</h1>
+            <p className="subtitle">Your AI trainer for Alberta Security Guard exam</p>
+          </div>
+          <span className="language-chip">
+            {activeLanguage?.flag} {activeLanguage?.label}
+          </span>
+        </header>
+
+        <nav className="tabs-row" aria-label="Mode Selection">
+          <button type="button" className={`tab-button ${activeTab === 'reader' ? 'active' : ''}`} onClick={() => setActiveTab('reader')}>
+            Manual Reader
           </button>
+          <button type="button" className={`tab-button ${activeTab === 'lesson' ? 'active' : ''}`} onClick={() => setActiveTab('lesson')}>
+            Lesson Mode
+          </button>
+          <button type="button" className={`tab-button ${activeTab === 'aiTutor' ? 'active' : ''}`} onClick={() => setActiveTab('aiTutor')}>
+            AI Tutor
+          </button>
+        </nav>
 
-          <section className={`chat-panel ${isOpen ? 'is-visible' : ''}`}>
-            <header className="chat-header">
-              <div><p className="chat-kicker">Study Bot</p><h2>Manual Chat</h2></div>
-              <label className="language-picker">
-                <select value={language} onChange={(e) => setLanguage(e.target.value)} disabled={loading}>
-                  {LANGUAGE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                </select>
-              </label>
-            </header>
-            <div className="message-list">
-              {messages.map((m) => (
-                <article key={m.id} className={`message ${m.role}`}>
-                  <p className="message-text">{m.text}</p>
-                </article>
+        {activeTab === 'reader' ? (
+          <ManualReader key={selectedLanguage} content={contentData} apiUrl={endpoint} currentLanguage={selectedLanguage} />
+        ) : null}
+
+        {!gameOver && activeTab === 'lesson' ? (
+          currentQuestion ? (
+            <LessonCard
+              question={currentQuestion}
+              questionNumber={questionIndex + 1}
+              totalQuestions={totalQuestions}
+              onAnswer={handleQuestionAnswered}
+              onAdvance={() => setQuestionIndex((currentIndex) => (currentIndex + 1) % totalQuestions)}
+            />
+          ) : (
+            <section className="empty-state">No questions available yet.</section>
+          )
+        ) : null}
+
+        {!gameOver && activeTab === 'aiTutor' ? (
+          <section className="ai-tutor-section">
+            <label htmlFor="topic" className="label">
+              Topic
+            </label>
+            <input
+              id="topic"
+              className="topic-input"
+              type="text"
+              placeholder="Example: arrest authority"
+              value={topic}
+              onChange={(event) => setTopic(event.target.value)}
+              disabled={loading}
+            />
+            <div className="button-row">
+              {Object.entries(MODE_META).map(([modeKey, meta]) => (
+                <button
+                  key={modeKey}
+                  type="button"
+                  onClick={() => {
+                    setAnswerMode(modeKey)
+                    runMode(modeKey)
+                  }}
+                  disabled={loading}
+                  className="mode-button"
+                >
+                  {loading && activeMode === modeKey ? (
+                    <span className="loading-inline">
+                      <span className="spinner" aria-hidden="true"></span>
+                      {meta.loading}
+                    </span>
+                  ) : (
+                    <span>{meta.label}</span>
+                  )}
+                </button>
               ))}
-              <div ref={bottomRef} />
             </div>
-            <form className="composer" onSubmit={handleSubmit}>
-              <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask a question..." rows={3} disabled={loading} />
-              <button type="submit" disabled={loading || !input.trim()}>Send</button>
-            </form>
+            {loading ? <p className="status">GuardBuddy is generating your response...</p> : null}
+            {error ? <p className="error">{error}</p> : null}
+            {answer ? (
+              <article className="output-card fade-in">
+                <div className="answer-header">
+                  <div className="answer-title-wrap">
+                    {answerIcon ? <span className="answer-icon">{answerIcon}</span> : null}
+                    <h2>AI Response</h2>
+                  </div>
+                  <span className="mode-chip">{MODE_META[answerMode]?.label || 'Response'}</span>
+                </div>
+                <div className="answer-content">
+                  {answerBlocks.map((block, blockIndex) => {
+                    const lines = block
+                      .split('\n')
+                      .map((line) => line.trim())
+                      .filter(Boolean)
+                    const hasQuizOptions = answerMode === 'quiz' && lines.some((line) => isQuizOptionLine(line))
+                    if (hasQuizOptions) {
+                      return (
+                        <div key={`${blockIndex}-${block.slice(0, 20)}`} className="answer-block">
+                          {lines.map((line, lineIndex) =>
+                            isQuizOptionLine(line) ? (
+                              <span key={`${lineIndex}-${line}`} className="option-pill">
+                                {line}
+                              </span>
+                            ) : (
+                              <p key={`${lineIndex}-${line}`} className="answer-paragraph">
+                                {line}
+                              </p>
+                            ),
+                          )}
+                        </div>
+                      )
+                    }
+                    return (
+                      <p key={`${blockIndex}-${block.slice(0, 20)}`} className="answer-paragraph">
+                        {block}
+                      </p>
+                    )
+                  })}
+                </div>
+              </article>
+            ) : null}
           </section>
-        </>
-      )}
+        ) : null}
+      </section>
     </main>
   )
 }
