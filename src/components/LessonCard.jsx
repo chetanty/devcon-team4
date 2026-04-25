@@ -10,14 +10,7 @@ const DEFAULT_T = {
   correctAnswer: 'Correct answer:',
 }
 
-function LessonCard({
-  question,
-  questionNumber,
-  totalQuestions,
-  onAnswer,
-  onAdvance,
-  t,
-}) {
+function LessonCard({ question, questionNumber, totalQuestions, onAnswer, onAdvance, t }) {
   const translations = t || DEFAULT_T
   const [selectedIndex, setSelectedIndex] = useState(null)
   const [isCorrect, setIsCorrect] = useState(false)
@@ -26,18 +19,15 @@ function LessonCard({
   useEffect(() => {
     setSelectedIndex(null)
     setIsCorrect(false)
-
     if (timerRef.current) {
       window.clearTimeout(timerRef.current)
       timerRef.current = null
     }
-  }, [question?.id, question?.question])
+  }, [question?.question])
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        window.clearTimeout(timerRef.current)
-      }
+      if (timerRef.current) window.clearTimeout(timerRef.current)
     }
   }, [])
 
@@ -47,13 +37,10 @@ function LessonCard({
 
   const handleOptionClick = (optionIndex) => {
     if (selectedIndex !== null) return
-
     const answerIsCorrect = optionIndex === question.correct
     setSelectedIndex(optionIndex)
     setIsCorrect(answerIsCorrect)
-
     if (onAnswer) onAnswer(answerIsCorrect)
-
     timerRef.current = window.setTimeout(() => {
       if (onAdvance) onAdvance()
     }, 1500)
@@ -61,15 +48,13 @@ function LessonCard({
 
   const getButtonClassName = (optionIndex) => {
     if (selectedIndex === null) return 'lesson-option'
-    if (optionIndex === question.correct) {
-      return 'lesson-option is-correct'
-    }
-    if (optionIndex === selectedIndex) return 'lesson-option is-wrong flash-red'
+    if (optionIndex === question.correct) return 'lesson-option is-correct'
+    if (optionIndex === selectedIndex) return 'lesson-option is-wrong'
     return 'lesson-option is-disabled'
   }
 
   const correctLabel = OPTION_LABELS[question.correct] || ''
-  const correctAnswer = question.options[question.correct] || ''
+  const correctText = question.options[question.correct] || ''
 
   return (
     <section className="lesson-card">
@@ -77,29 +62,19 @@ function LessonCard({
         {translations.question} {questionNumber} {translations.of} {totalQuestions}
       </p>
 
-        <div>
-          <p className="lesson-progress">
-            Question {questionNumber} of {totalQuestions}
-          </p>
-          <h2 className="lesson-question">{question.question}</h2>
-          <p className="lesson-support">Tap the best answer. The card will move forward automatically.</p>
-        </div>
-      </div>
+      <h2 className="lesson-question">{question.question}</h2>
 
       <div className="lesson-options" role="group" aria-label="Answer options">
         {question.options.map((option, optionIndex) => (
           <button
             key={`${optionIndex}-${option}`}
             type="button"
-            className={getClassName(optionIndex)}
+            className={getButtonClassName(optionIndex)}
             onClick={() => handleOptionClick(optionIndex)}
             disabled={selectedIndex !== null}
           >
-            <span className="option-prefix">{OPTION_LABELS[optionIndex]}</span>
-            <span className="option-copy">
-              <span className="option-title">{option}</span>
-              <span className="option-subtitle">Choose this answer</span>
-            </span>
+            <span className="option-prefix">{OPTION_LABELS[optionIndex]})</span>
+            <span>{option}</span>
           </button>
         ))}
       </div>

@@ -98,7 +98,6 @@ function App() {
 
   const endpoint = useMemo(() => getChatEndpoint(API_URL), [])
   const totalQuestions = questions.length
-  const gameOver = hearts === 0
 
   const activeLanguage = useMemo(
     () => LANGUAGES.find((language) => language.code === selectedLanguage) ?? null,
@@ -259,7 +258,6 @@ function App() {
 
   const handleRestartAfterGameOver = () => {
     setHearts(3)
-    setGameOver(false)
     fetchQuestions()
   }
 
