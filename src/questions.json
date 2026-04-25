@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "question": "What is the core role of a security professional?",
+    "options": [
+      "Arrest criminals",
+      "Observe, Deter, Report",
+      "Enforce the law",
+      "Replace police"
+    ],
+    "correct": 1,
+    "explanation": "The core role is to Observe, Deter, and Report — not to enforce the law."
+  },
+  {
+    "id": 2,
+    "question": "Under Section 494, when can a security guard make an arrest?",
+    "options": [
+      "Anytime they suspect someone",
+      "Only with a warrant",
+      "When they find someone committing an indictable offence",
+      "Never"
+    ],
+    "correct": 2,
+    "explanation": "Section 494 allows arrest without warrant when someone is found committing an indictable offence."
+  },
+  {
+    "id": 3,
+    "question": "After arresting someone, what must a security guard do?",
+    "options": [
+      "Hold them until morning",
+      "Deliver them to a peace officer as soon as possible",
+      "Call their supervisor",
+      "Release them immediately"
+    ],
+    "correct": 1,
+    "explanation": "Section 494(3) requires you to deliver the arrested person to a peace officer forthwith."
+  }
+]

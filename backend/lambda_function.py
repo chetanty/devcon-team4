@@ -1,10 +1,11 @@
 import base64
 import json
+from pathlib import Path
 
 import boto3
 
 BEDROCK = boto3.client("bedrock-runtime", region_name="us-east-1")
-MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
@@ -12,18 +13,36 @@ CORS_HEADERS = {
     "Access-Control-Allow-Methods": "OPTIONS,POST",
 }
 
-TRAINING_CONTEXT = """
-Alberta Basic Security Training teaches that security professionals protect people, property, and information.
-The core role of a security professional is OBSERVE, DETER, REPORT.
-Security professionals are not police officers.
-They must respect Charter rights, including life, liberty, security of person, protection from unreasonable search and seizure, and protection from arbitrary detention.
-Security professionals should usually observe and report criminal activity and leave law enforcement to police.
-A security professional may only arrest in limited situations, such as finding someone committing an indictable offence or being authorized by a property owner and finding someone committing a criminal offence on or in relation to that property.
-After arrest, the person must be delivered to a peace officer as soon as possible.
-Use of force must be necessary, reasonable, and not excessive.
-Security professionals must communicate professionally, stay calm with uncooperative people, and document incidents clearly.
-Reports and notebooks should be accurate, objective, complete, and written as soon as possible after the incident.
-""".strip()
+def _load_training_context():
+    fallback = "Alberta Basic Security Training content unavailable."
+
+    try:
+        content_path = Path(__file__).with_name("content.json")
+        data = json.loads(content_path.read_text(encoding="utf-8"))
+        english_content = data.get("english", "")
+
+        if isinstance(english_content, list):
+            joined = "\n".join(
+                str(part).strip() for part in english_content if str(part).strip()
+            ).strip()
+            return joined or fallback
+
+        if isinstance(english_content, dict):
+            joined = "\n".join(
+                str(value).strip()
+                for value in english_content.values()
+                if str(value).strip()
+            ).strip()
+            return joined or fallback
+
+        text = str(english_content).strip()
+        return text or fallback
+    except Exception as exc:
+        print(f"Failed to load content.json: {exc}")
+        return fallback
+
+
+TRAINING_CONTEXT = _load_training_context()
 
 MODE_INSTRUCTIONS = {
     "explain": """
