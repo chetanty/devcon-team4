@@ -1,5 +1,6 @@
 import base64
 import json
+from polly_utils import synthesize_speech
 
 from bedrock_utils import DEFAULT_MODEL_ID, invoke_model_text
 from content_tools import (
@@ -100,7 +101,31 @@ def lambda_handler(event, context):
         body = _parse_event_body(event)
     except (ValueError, json.JSONDecodeError):
         return _response(400, {"error": "Invalid JSON request body."})
-
+    # --- NEW: TTS ACTION LOGIC ---
+    # This handles the "Play" button from your Manual Reader page
+    if body.get("action") == "tts":
+        text = body.get("text")
+        language = str(body.get("language", "english")).strip().lower()
+        
+        if not text:
+            return _response(400, {"error": "text is required for tts action"})
+            
+        try:
+            audio_data = synthesize_speech(text, language)
+            # API Gateway requires binary data to be Base64 encoded in the response
+            return {
+                "statusCode": 200,
+                "headers": {
+                    "Content-Type": "audio/mpeg",
+                    "Access-Control-Allow-Origin": "*",
+                },
+                "body": base64.b64encode(audio_data).decode('utf-8'),
+                "isBase64Encoded": True
+            }
+        except Exception as exc:
+            print(f"Polly synthesis failed: {exc}")
+            return _response(500, {"error": "Unable to generate audio right now."})
+    # -----------------------------
     message = _coerce_message(body)
     language = str(body.get("language", "english")).strip().lower()
 
