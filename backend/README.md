@@ -1,49 +1,53 @@
-# GuardBuddy AI MVP
+# GuardBuddy Backend
 
-GuardBuddy AI is a hackathon MVP for Alberta Basic Security Training students with low English proficiency.
+This backend is the safe bridge between the frontend and Amazon Bedrock.
 
-## 1. Frontend (React + Vite)
+## AWS pieces and what they do
 
-From the project root:
+- `Amazon Bedrock`: the AI model service
+- `AWS Lambda`: your Python backend function
+- `API Gateway`: exposes a public HTTP endpoint for the frontend
+- `IAM role`: gives Lambda permission to call Bedrock
 
-```bash
-npm install
-npm run dev
+## Request flow
+
+```text
+Browser -> API Gateway -> Lambda -> Bedrock
 ```
 
-Create your environment file first:
+Why this matters:
 
-```bash
-cp .env.example .env
-```
+- The browser can safely call API Gateway
+- Lambda can safely hold AWS permissions
+- Bedrock is never called with exposed frontend credentials
 
-Set `VITE_API_URL` to your deployed API Gateway base URL, for example:
+## Lambda runtime
 
-```env
-VITE_API_URL=https://abc123.execute-api.us-east-1.amazonaws.com
-```
-
-The frontend will POST to `POST /chat` (it appends `/chat` if your URL does not include it).
-
-## 2. Backend (AWS Lambda + Bedrock)
-
-- Runtime: Python 3.12
+- Python `3.12`
 - Handler: `lambda_function.lambda_handler`
 - Region: `us-east-1`
-- Model: `anthropic.claude-3-haiku-20240307-v1:0`
+- Default model: `anthropic.claude-3-haiku-20240307-v1:0`
 
-### Files
+## Files to deploy
 
-- `backend/lambda_function.py`
-- `backend/requirements.txt`
+Your Lambda package needs these files together:
 
-### IAM permission required
+- `lambda_function.py`
+- `bedrock_utils.py`
+- `content_tools.py`
+- `content.json`
 
-Attach a policy that allows:
+Install Python dependency:
 
-- `bedrock:InvokeModel`
+```bash
+pip install -r requirements.txt -t .
+```
 
-Minimum example statement:
+Then zip the backend folder contents and upload them to Lambda.
+
+## IAM permission
+
+Your Lambda execution role needs:
 
 ```json
 {
@@ -53,28 +57,74 @@ Minimum example statement:
 }
 ```
 
-## 3. API Gateway HTTP API
+## API Gateway
 
-Create an HTTP API with Lambda integration:
+Create an HTTP API with:
 
 - Route: `POST /chat`
-- Integration target: your GuardBuddy Lambda function
+- Integration: your Lambda function
 
-### CORS note
+Enable CORS:
 
-Enable CORS in API Gateway and allow at minimum:
+- Methods: `POST, OPTIONS`
+- Headers: `Content-Type`
+- Origins: your frontend URL or `*` for quick testing
 
-- Allowed origins: your frontend origin (or `*` for quick demo)
-- Allowed methods: `POST, OPTIONS`
-- Allowed headers: `Content-Type`
+## Frontend contract
 
-The Lambda response already includes CORS headers for `POST` and `OPTIONS`.
+The frontend sends:
 
-## 4. Quick deploy flow
+```json
+{
+  "language": "english",
+  "message": "What should a guard do after an arrest?"
+}
+```
 
-1. Create Lambda function and upload `backend/lambda_function.py`.
-2. Grant Lambda role `bedrock:InvokeModel`.
-3. Create API Gateway HTTP API route `POST /chat` and integrate Lambda.
-4. Enable CORS on API Gateway.
-5. Copy API base URL into `.env` as `VITE_API_URL`.
-6. Run frontend with `npm run dev`.
+The backend responds with:
+
+```json
+{
+  "answer": "...",
+  "sourceTitles": ["..."],
+  "sourceLanguage": "english",
+  "modelId": "anthropic.claude-3-haiku-20240307-v1:0"
+}
+```
+
+## Bedrock playground prompt
+
+Start by testing this manually in Bedrock playground:
+
+```text
+You are a helpful tutor for the Alberta Basic Security Guard exam.
+
+Given this text from the manual:
+[paste a paragraph]
+
+Generate 5 multiple choice questions in JSON format like this:
+{
+  "questions": [
+    {
+      "question": "...",
+      "options": ["A", "B", "C", "D"],
+      "correct": 0,
+      "explanation": "..."
+    }
+  ]
+}
+
+Respond in English. Return JSON only. No extra text.
+```
+
+## Generate `questions.json`
+
+From the project root:
+
+```bash
+cd backend
+pip install -r requirements.txt
+python generate_questions.py --languages english --max-sections 2
+```
+
+When the output looks good, remove `--max-sections 2` and run the full generation.

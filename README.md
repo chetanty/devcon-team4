@@ -1,81 +1,86 @@
 # GuardBuddy AI
 
-Hackathon MVP for Alberta Basic Security Training learners with low English proficiency.
+GuardBuddy AI is a hackathon MVP for Alberta Basic Security Training learners.
 
-## Stack
+## What is now in this repo
 
-- Frontend: React + Vite
-- Backend: Python AWS Lambda
-- API: API Gateway HTTP API
-- AI: Amazon Bedrock Claude 3 Haiku
+- A React frontend with a floating multilingual chatbot widget
+- An AWS Lambda backend that calls Amazon Bedrock
+- Manual-aware prompting using `content.json`
+- A Bedrock script that can generate `questions.json` from the manual
+
+## Architecture
+
+Use this flow:
+
+```text
+React frontend -> API Gateway -> Lambda -> Amazon Bedrock
+```
+
+Do not call Bedrock directly from the browser. That would expose AWS credentials.
 
 ## Frontend setup
 
-Install and run from the project root:
+From the project root:
 
 ```bash
 npm install
-npm run dev
-```
-
-Create an environment file:
-
-```bash
 cp .env.example .env
 ```
 
-Set API URL:
+Set your API Gateway base URL in `.env`:
 
 ```env
 VITE_API_URL=https://your-api-id.execute-api.us-east-1.amazonaws.com
 ```
 
-The frontend sends a `POST` request to `/chat`.
+Then run:
 
-## Backend (Lambda)
-
-- Runtime: Python 3.12
-- Handler: `lambda_function.lambda_handler`
-- Source file: `backend/lambda_function.py`
-- Python deps: `backend/requirements.txt`
-- Model: `anthropic.claude-3-haiku-20240307-v1:0`
-
-### Deploy Lambda
-
-1. Create a Lambda function in `us-east-1`.
-2. Upload `backend/lambda_function.py`.
-3. Set handler to `lambda_function.lambda_handler`.
-4. Attach IAM permission `bedrock:InvokeModel`.
-
-## Required IAM permission
-
-The Lambda execution role must allow:
-
-- `bedrock:InvokeModel`
-
-Example policy statement:
-
-```json
-{
-	"Effect": "Allow",
-	"Action": "bedrock:InvokeModel",
-	"Resource": "*"
-}
+```bash
+npm run dev
 ```
 
-## API Gateway HTTP API
+The frontend sends `POST /chat`.
 
-Create and deploy an HTTP API with:
+## Backend setup
 
-- Route: `POST /chat`
-- Integration: your Lambda function
+Backend source lives in [backend](/Users/aahilyusuf/Documents/Codex/2026-04-25/i-want-to-work-in-this/devcon-team4/backend).
 
-## CORS note
+Main files:
 
-Enable CORS in API Gateway and allow:
+- [backend/lambda_function.py](/Users/aahilyusuf/Documents/Codex/2026-04-25/i-want-to-work-in-this/devcon-team4/backend/lambda_function.py)
+- [backend/content_tools.py](/Users/aahilyusuf/Documents/Codex/2026-04-25/i-want-to-work-in-this/devcon-team4/backend/content_tools.py)
+- [backend/bedrock_utils.py](/Users/aahilyusuf/Documents/Codex/2026-04-25/i-want-to-work-in-this/devcon-team4/backend/bedrock_utils.py)
+- [backend/generate_questions.py](/Users/aahilyusuf/Documents/Codex/2026-04-25/i-want-to-work-in-this/devcon-team4/backend/generate_questions.py)
 
-- Methods: `POST, OPTIONS`
-- Headers: `Content-Type`
-- Origins: your frontend URL (or `*` for demo)
+You also need `content.json` packaged with the Lambda deployment.
 
-Lambda responses already include matching CORS headers.
+## Generate `questions.json`
+
+Once your AWS credentials can access Bedrock, run:
+
+```bash
+cd backend
+pip install -r requirements.txt
+python generate_questions.py --languages english
+```
+
+That writes `questions.json` to the project root by default.
+
+Useful options:
+
+```bash
+python generate_questions.py --languages english,spanish --max-sections 2
+python generate_questions.py --languages all
+```
+
+## AWS services you need
+
+- `Amazon Bedrock`: runs the model
+- `AWS Lambda`: holds your backend code and Bedrock call
+- `API Gateway`: gives the frontend a public `/chat` endpoint
+- `IAM`: gives Lambda permission to call Bedrock
+
+## Deploy notes
+
+Full deployment notes are in [backend/README.md](/Users/aahilyusuf/Documents/Codex/2026-04-25/i-want-to-work-in-this/devcon-team4/backend/README.md).
