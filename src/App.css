@@ -317,21 +317,9 @@
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr);
-  gap: 18px;
-}
-
-.main-column,
-.side-column {
-  display: grid;
-  gap: 18px;
-}
-
-.mode-switch {
-  display: inline-grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 1rem;
 }
 
 .mode-pill {
@@ -559,14 +547,119 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
-.stat-label {
-  display: block;
-  margin-bottom: 8px;
-  color: #baaed2;
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.reader-shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  border: 1px solid #d7def3;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 70vh;
+}
+
+.reader-sidebar {
+  border-right: 1px solid #d7def3;
+  background: #f8faff;
+  padding: 0.85rem;
+}
+
+.reader-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.7rem;
+}
+
+.reader-chapter-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: calc(70vh - 2rem);
+  overflow-y: auto;
+}
+
+.reader-chapter-button {
+  text-align: left;
+  border: 1px solid #d0d9ef;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #2a3a74;
+  font-weight: 700;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+}
+
+.reader-chapter-button.active {
+  background: #1a1f3c;
+  border-color: #1a1f3c;
+  color: #f5c518;
+}
+
+.reader-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.reader-progress-track {
+  height: 8px;
+  background: #d9def0;
+}
+
+.reader-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d9a90a, #f5c518);
+  transition: width 0.2s ease;
+}
+
+.reader-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.reader-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.reader-play-button {
+  border: none;
+  border-radius: 999px;
+  background: #12723d;
+  color: #ffffff;
+  padding: 0.45rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reader-play-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.reader-progress-label {
+  margin: 0.55rem 0 0;
+  color: #3d4c89;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.reader-text {
+  margin-top: 0.8rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: #1f2b5a;
+}
+
+.lesson-card {
+  border: 1px solid #d7def3;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 0.95rem;
 }
 
 .stat-card strong {
@@ -874,5 +967,29 @@
 
   .completion-actions > * {
     width: 100%;
+  }
+
+  .tabs-row {
+    grid-template-columns: 1fr;
+  }
+
+  .reader-shell {
+    grid-template-columns: 1fr;
+    min-height: 76vh;
+  }
+
+  .reader-sidebar {
+    border-right: none;
+    border-bottom: 1px solid #d7def3;
+    max-height: 34vh;
+  }
+
+  .reader-chapter-list {
+    max-height: 24vh;
+  }
+
+  .reader-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

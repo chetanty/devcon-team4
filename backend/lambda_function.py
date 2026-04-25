@@ -1,5 +1,6 @@
 import base64
 import json
+from polly_utils import synthesize_speech
 
 import boto3
 
@@ -175,6 +176,29 @@ def lambda_handler(event, context):
         body = _parse_event_body(event)
     except (ValueError, json.JSONDecodeError):
         return _response(400, {"error": "Invalid JSON request body."})
+
+    # Handle Polly text-to-speech requests from the manual reader.
+    if body.get("action") == "tts":
+        text = body.get("text")
+        language = str(body.get("language", "english")).strip().lower()
+
+        if not text:
+            return _response(400, {"error": "text is required for tts action"})
+
+        try:
+            audio_data = synthesize_speech(text, language)
+            return {
+                "statusCode": 200,
+                "headers": {
+                    "Content-Type": "audio/mpeg",
+                    "Access-Control-Allow-Origin": "*",
+                },
+                "body": base64.b64encode(audio_data).decode("utf-8"),
+                "isBase64Encoded": True
+            }
+        except Exception as exc:
+            print(f"Polly synthesis failed: {exc}")
+            return _response(500, {"error": "Unable to generate audio right now."})
 
     mode = str(body.get("mode", "")).strip().lower()
     topic = str(body.get("topic", "")).strip()
