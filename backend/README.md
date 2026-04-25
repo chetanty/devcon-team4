@@ -1,53 +1,49 @@
-# GuardBuddy Backend
+# GuardBuddy AI MVP
 
-This backend is the safe bridge between the frontend and Amazon Bedrock.
+GuardBuddy AI is a hackathon MVP for Alberta Basic Security Training students with low English proficiency.
 
-## AWS pieces and what they do
+## 1. Frontend (React + Vite)
 
-- `Amazon Bedrock`: the AI model service
-- `AWS Lambda`: your Python backend function
-- `API Gateway`: exposes a public HTTP endpoint for the frontend
-- `IAM role`: gives Lambda permission to call Bedrock
-
-## Request flow
-
-```text
-Browser -> API Gateway -> Lambda -> Bedrock
-```
-
-Why this matters:
-
-- The browser can safely call API Gateway
-- Lambda can safely hold AWS permissions
-- Bedrock is never called with exposed frontend credentials
-
-## Lambda runtime
-
-- Python `3.12`
-- Handler: `lambda_function.lambda_handler`
-- Region: `us-east-1`
-- Default model: `anthropic.claude-3-haiku-20240307-v1:0`
-
-## Files to deploy
-
-Your Lambda package needs these files together:
-
-- `lambda_function.py`
-- `bedrock_utils.py`
-- `content_tools.py`
-- `content.json`
-
-Install Python dependency:
+From the project root:
 
 ```bash
-pip install -r requirements.txt -t .
+npm install
+npm run dev
 ```
 
-Then zip the backend folder contents and upload them to Lambda.
+Create your environment file first:
 
-## IAM permission
+```bash
+cp .env.example .env
+```
 
-Your Lambda execution role needs:
+Set `VITE_API_URL` to your deployed API Gateway base URL, for example:
+
+```env
+VITE_API_URL=https://abc123.execute-api.us-east-1.amazonaws.com
+```
+
+The frontend will POST to `POST /chat` (it appends `/chat` if your URL does not include it).
+
+## 2. Backend (AWS Lambda + Bedrock)
+
+- Runtime: Python 3.12
+- Handler: `lambda_function.lambda_handler`
+- Region: `us-east-1`
+- Model: `anthropic.claude-3-haiku-20240307-v1:0`
+
+### Files
+
+- `backend/lambda_function.py`
+- `backend/requirements.txt`
+
+### IAM permission required
+
+Attach a policy that allows:
+
+- `bedrock:InvokeModel`
+
+Minimum example statement:
 
 ```json
 {
@@ -57,74 +53,28 @@ Your Lambda execution role needs:
 }
 ```
 
-## API Gateway
+## 3. API Gateway HTTP API
 
-Create an HTTP API with:
+Create an HTTP API with Lambda integration:
 
 - Route: `POST /chat`
-- Integration: your Lambda function
+- Integration target: your GuardBuddy Lambda function
 
-Enable CORS:
+### CORS note
 
-- Methods: `POST, OPTIONS`
-- Headers: `Content-Type`
-- Origins: your frontend URL or `*` for quick testing
+Enable CORS in API Gateway and allow at minimum:
 
-## Frontend contract
+- Allowed origins: your frontend origin (or `*` for quick demo)
+- Allowed methods: `POST, OPTIONS`
+- Allowed headers: `Content-Type`
 
-The frontend sends:
+The Lambda response already includes CORS headers for `POST` and `OPTIONS`.
 
-```json
-{
-  "language": "english",
-  "message": "What should a guard do after an arrest?"
-}
-```
+## 4. Quick deploy flow
 
-The backend responds with:
-
-```json
-{
-  "answer": "...",
-  "sourceTitles": ["..."],
-  "sourceLanguage": "english",
-  "modelId": "anthropic.claude-3-haiku-20240307-v1:0"
-}
-```
-
-## Bedrock playground prompt
-
-Start by testing this manually in Bedrock playground:
-
-```text
-You are a helpful tutor for the Alberta Basic Security Guard exam.
-
-Given this text from the manual:
-[paste a paragraph]
-
-Generate 5 multiple choice questions in JSON format like this:
-{
-  "questions": [
-    {
-      "question": "...",
-      "options": ["A", "B", "C", "D"],
-      "correct": 0,
-      "explanation": "..."
-    }
-  ]
-}
-
-Respond in English. Return JSON only. No extra text.
-```
-
-## Generate `questions.json`
-
-From the project root:
-
-```bash
-cd backend
-pip install -r requirements.txt
-python generate_questions.py --languages english --max-sections 2
-```
-
-When the output looks good, remove `--max-sections 2` and run the full generation.
+1. Create Lambda function and upload `backend/lambda_function.py`.
+2. Grant Lambda role `bedrock:InvokeModel`.
+3. Create API Gateway HTTP API route `POST /chat` and integrate Lambda.
+4. Enable CORS on API Gateway.
+5. Copy API base URL into `.env` as `VITE_API_URL`.
+6. Run frontend with `npm run dev`.
