@@ -9,12 +9,58 @@ from content_tools import (
     get_available_languages,
     get_language_label,
 )
+from polly_utils import synthesize_speech
+
+import boto3
+
+BEDROCK = boto3.client("bedrock-runtime", region_name="us-east-1")
+MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "OPTIONS,POST",
 }
+
+TRAINING_CONTEXT = """
+Alberta Basic Security Training teaches that security professionals protect people, property, and information.
+The core role of a security professional is OBSERVE, DETER, REPORT.
+Security professionals are not police officers.
+They must respect Charter rights, including life, liberty, security of person, protection from unreasonable search and seizure, and protection from arbitrary detention.
+Security professionals should usually observe and report criminal activity and leave law enforcement to police.
+A security professional may only arrest in limited situations, such as finding someone committing an indictable offence or being authorized by a property owner and finding someone committing a criminal offence on or in relation to that property.
+After arrest, the person must be delivered to a peace officer as soon as possible.
+Use of force must be necessary, reasonable, and not excessive.
+Security professionals must communicate professionally, stay calm with uncooperative people, and document incidents clearly.
+Reports and notebooks should be accurate, objective, complete, and written as soon as possible after the incident.
+""".strip()
+
+MODE_INSTRUCTIONS = {
+    "explain": """
+Explain the topic in simple English for a student with beginner English.
+Include:
+1. simple explanation
+2. key exam point
+3. real security guard example
+4. common mistake to avoid
+""".strip(),
+    "quiz": """
+Create 3 multiple-choice questions.
+Each question must have A-D options.
+Mark correct answer.
+Explain why the correct answer is correct.
+Explain the exam trap.
+""".strip(),
+    "scenario": """
+Create one realistic Alberta security guard workplace scenario.
+Ask what the student should do.
+Then provide ideal answer.
+Grade the answer using 3 criteria:
+legal, professional, safe.
+Include one phrase the student could say in real life.
+""".strip(),
+}
+
 
 def _response(status_code, body):
     return {
@@ -56,24 +102,30 @@ def _coerce_message(body):
     if mode == "scenario":
         return f"Give me a realistic Alberta security scenario about {topic}."
     return f"Explain {topic} for a beginner student."
+def _build_prompt(mode, topic):
+    mode_instruction = MODE_INSTRUCTIONS[mode]
 
-
-def _build_prompt(message, language, manual_excerpt):
-    language_label = get_language_label(language)
     return f"""
-You are a helpful tutor for the Alberta Basic Security Guard Training exam.
+You are GuardBuddy AI, an exam-focused tutor for Alberta Basic Security Training students with low English proficiency.
 
-Answer only from the manual excerpt provided below.
-Always respond in {language_label}.
-If the manual excerpt does not contain enough information, say that you cannot find the answer in the provided manual section and ask the student to narrow the topic.
-Keep the answer practical, supportive, and easy to understand.
-Do not mention that you are using Bedrock or a prompt.
+Training context:
+{TRAINING_CONTEXT}
 
-Manual excerpt:
-{manual_excerpt}
+Student topic:
+{topic}
 
-Student question:
-{message}
+Task mode:
+{mode}
+
+Task instructions:
+{mode_instruction}
+
+Rules:
+- Keep answers practical and exam-focused.
+- Do not give legal advice beyond this training context.
+- Do not claim the student has police powers.
+- Always emphasize observe, deter, report when relevant.
+- If the topic is unclear, ask for one clarification question first, then provide a best-effort answer.
 """.strip()
 
 
@@ -187,17 +239,43 @@ def lambda_handler(event, context):
     message = _coerce_message(body)
     if not message:
         return _response(400, {"error": "message is required"})
+    # Handle Polly text-to-speech requests from the manual reader.
+    if body.get("action") == "tts":
+        text = body.get("text")
+        language = str(body.get("language", "english")).strip().lower()
 
-    try:
-        excerpt_result = find_relevant_manual_excerpt(language, message)
-    except Exception as exc:
-        print(f"Manual lookup failed: {exc}")
-        return _response(500, {"error": "Unable to load manual content right now."})
+        if not text:
+            return _response(400, {"error": "text is required for tts action"})
+
+        try:
+            audio_data = synthesize_speech(text, language)
+            return {
+                "statusCode": 200,
+                "headers": {
+                    "Content-Type": "audio/mpeg",
+                    "Access-Control-Allow-Origin": "*",
+                },
+                "body": base64.b64encode(audio_data).decode("utf-8"),
+                "isBase64Encoded": True
+            }
+        except Exception as exc:
+            print(f"Polly synthesis failed: {exc}")
+            return _response(500, {"error": "Unable to generate audio right now."})
+
+    mode = str(body.get("mode", "")).strip().lower()
+    topic = str(body.get("topic", "")).strip()
+
+    if mode not in MODE_INSTRUCTIONS:
+        return _response(400, {"error": "mode must be one of: explain, quiz, scenario"})
 
     prompt = _build_prompt(message, language, excerpt_result["excerpt"])
+    if not topic:
+        return _response(400, {"error": "topic is required"})
+
+    prompt = _build_prompt(mode, topic)
 
     try:
-        answer = invoke_model_text(prompt)
+        answer = _invoke_bedrock(prompt)
     except Exception as exc:
         print(f"Bedrock invocation failed: {exc}")
         return _response(500, {"error": "Unable to generate answer right now."})

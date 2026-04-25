@@ -1,38 +1,62 @@
 [
   {
     "id": 1,
-    "question": "What is the core role of a security professional?",
+    "question": "What is the main role of a security professional?",
     "options": [
-      "Arrest criminals",
-      "Observe, Deter, Report",
-      "Enforce the law",
-      "Replace police"
+      "Arrest anyone acting suspicious",
+      "Observe, deter, and report",
+      "Replace the police",
+      "Give legal advice"
     ],
     "correct": 1,
-    "explanation": "The core role is to Observe, Deter, and Report — not to enforce the law."
+    "explanation": "The training manual says the core role is to observe, deter, and report. Security guards are not police."
   },
   {
     "id": 2,
-    "question": "Under Section 494, when can a security guard make an arrest?",
+    "question": "When can a security guard arrest under Section 494?",
     "options": [
-      "Anytime they suspect someone",
-      "Only with a warrant",
-      "When they find someone committing an indictable offence",
-      "Never"
+      "Only after a supervisor approves it",
+      "Whenever they think a crime happened",
+      "When they find someone committing an indictable offence or a property-related criminal offence in the allowed circumstances",
+      "Only if they are off duty"
     ],
     "correct": 2,
-    "explanation": "Section 494 allows arrest without warrant when someone is found committing an indictable offence."
+    "explanation": "A citizen's arrest is limited. The manual stresses that guards only arrest in specific legal situations."
   },
   {
     "id": 3,
-    "question": "After arresting someone, what must a security guard do?",
+    "question": "What must happen after a security guard makes an arrest?",
     "options": [
-      "Hold them until morning",
-      "Deliver them to a peace officer as soon as possible",
-      "Call their supervisor",
-      "Release them immediately"
+      "Keep the person until the shift ends",
+      "Deliver the person to a peace officer as soon as possible",
+      "Search the person for every item",
+      "Drive the person home"
     ],
     "correct": 1,
-    "explanation": "Section 494(3) requires you to deliver the arrested person to a peace officer forthwith."
+    "explanation": "After arrest, the person must be delivered to a peace officer as soon as possible."
+  },
+  {
+    "id": 4,
+    "question": "How should use of force be described in the manual?",
+    "options": [
+      "Allowed whenever a guard feels unsafe",
+      "Necessary, reasonable, and not excessive",
+      "Always physical before verbal",
+      "The same as police force rules"
+    ],
+    "correct": 1,
+    "explanation": "The manual teaches that any force used must be necessary, reasonable, and not excessive."
+  },
+  {
+    "id": 5,
+    "question": "What makes a good security notebook or report?",
+    "options": [
+      "Objective, accurate, complete, and written promptly",
+      "Short, casual, and based on memory later",
+      "Only written when police ask for it",
+      "Focused mainly on personal opinions"
+    ],
+    "correct": 0,
+    "explanation": "The manual says reports and notebook entries should be accurate, objective, complete, and written as soon as possible."
   }
 ]

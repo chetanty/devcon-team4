@@ -1,17 +1,32 @@
 :root {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.4;
+  font-family: 'Avenir Next', 'Trebuchet MS', 'Segoe UI', sans-serif;
+  line-height: 1.5;
   font-weight: 400;
+  color-scheme: dark;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #153475 0%, #08173c 52%, #04102b 100%);
-  color: #f8fafc;
+  background:
+    radial-gradient(circle at top, rgba(111, 76, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 20% 80%, rgba(91, 33, 182, 0.22), transparent 26%),
+    linear-gradient(180deg, #120f1d 0%, #0b0911 100%);
+  color: #f8f4ff;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
 #root {

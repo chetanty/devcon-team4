@@ -62,14 +62,14 @@ function LessonCard({
   const getButtonClassName = (optionIndex) => {
     if (selectedIndex === null) return 'lesson-option'
     if (optionIndex === question.correct) {
-      return `lesson-option is-correct ${selectedIndex === optionIndex ? 'flash-green' : ''}`
+      return 'lesson-option is-correct'
     }
     if (optionIndex === selectedIndex) return 'lesson-option is-wrong flash-red'
     return 'lesson-option is-disabled'
   }
 
   const correctLabel = OPTION_LABELS[question.correct] || ''
-  const correctText = question.options?.[question.correct] || ''
+  const correctAnswer = question.options[question.correct] || ''
 
   return (
     <section className="lesson-card">
@@ -77,19 +77,29 @@ function LessonCard({
         {translations.question} {questionNumber} {translations.of} {totalQuestions}
       </p>
 
-      <h2 className="lesson-question">{question.question}</h2>
+        <div>
+          <p className="lesson-progress">
+            Question {questionNumber} of {totalQuestions}
+          </p>
+          <h2 className="lesson-question">{question.question}</h2>
+          <p className="lesson-support">Tap the best answer. The card will move forward automatically.</p>
+        </div>
+      </div>
 
       <div className="lesson-options" role="group" aria-label="Answer options">
         {question.options.map((option, optionIndex) => (
           <button
             key={`${optionIndex}-${option}`}
             type="button"
-            className={getButtonClassName(optionIndex)}
+            className={getClassName(optionIndex)}
             onClick={() => handleOptionClick(optionIndex)}
             disabled={selectedIndex !== null}
           >
-            <span className="option-prefix">{OPTION_LABELS[optionIndex]})</span>
-            <span>{option}</span>
+            <span className="option-prefix">{OPTION_LABELS[optionIndex]}</span>
+            <span className="option-copy">
+              <span className="option-title">{option}</span>
+              <span className="option-subtitle">Choose this answer</span>
+            </span>
           </button>
         ))}
       </div>
