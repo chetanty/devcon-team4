@@ -1,0 +1,59 @@
+TRAINING_CONTEXT = """
+Alberta Basic Security Training exam summary.
+Security professionals protect people, property, and information.
+Core role: observe, deter, report.
+Security professionals are not police officers and must stay within legal authority.
+
+Module One - Introduction to Security Work
+- Security professionals in Alberta need proper licensing, training, and good character to work legally.
+- Applicants are expected to meet age and eligibility requirements before licensing.
+- The Registrar may refuse, suspend, or refuse to renew a licence if legal or regulatory requirements are not met.
+- Licensees must report certain criminal charges or arrests to the Registrar within required timelines.
+
+Module Two - Legal System
+- Charter rights apply, including life, liberty, security of person, and protection from unreasonable search or arbitrary detention.
+- Section 494 Criminal Code allows arrest by a non-police person only in limited conditions and usually when an offence is found committing.
+- After a lawful arrest, the detained person must be turned over to a peace officer as soon as possible.
+- Offence categories matter for exam questions: indictable, summary conviction, and hybrid offences.
+- Section 25 supports lawful use of force only when acting on lawful authority and reasonable grounds.
+- Section 26 creates criminal liability when excessive force is used.
+- Section 27 permits force to prevent certain offences only when it is necessary and proportionate.
+- Search and seizure actions must be lawful, justified, and limited to what is necessary for safety and evidence protection.
+
+Module Three - Basic Security Procedures
+- Core operational duty is observe, deter, and report while staying within site policy and legal limits.
+- Patrols should be systematic, alert, and documented according to post orders.
+- Post orders guide shift duties, emergency contacts, patrol frequency, and reporting requirements.
+- Access control requires verifying authorization and managing entry points consistently.
+- Crowd situations can escalate quickly, so guards should focus on prevention, communication, and requesting support early.
+- Observation quality directly affects incident reporting accuracy and follow-up investigations.
+
+Module Four - Communication
+- LEAPS (Listen, Empathize, Ask, Paraphrase, Summarize) is a key de-escalation framework for gaining cooperation.
+- When dealing with uncooperative people, stay calm, give clear directions, and avoid provocative language.
+- Use professional tone, maintain distance, and request backup early when behavior escalates.
+- Intoxicated persons may be unpredictable, so prioritize safety, clear communication, and timely police assistance when required.
+- Communication supports the security role of observing events and reporting facts rather than acting as law enforcement.
+
+Module Five - Documentation and Evidence
+- Notebook entries should be timely, factual, complete, and written in clear chronological order.
+- Incident reports must be objective, accurate, and free of assumptions or emotional wording.
+- Evidence may be physical, documentary, digital, or testimonial and must be handled carefully.
+- Good notes and reports improve credibility and prepare security professionals for court testimony.
+- Statements should focus on who, what, when, where, and actions taken.
+- Regulatory reporting obligations can include strict timelines for reporting certain charges or events.
+
+Module Six - Emergency Response
+- Treat alarms as genuine first, verify source quickly, and follow post-order escalation steps.
+- Fire response includes notifying emergency services, controlling movement, and supporting orderly evacuation.
+- Evacuation procedures should prioritize life safety, accountability, and clear direction to occupants.
+- Bomb threat response requires immediate reporting, calm communication, and strict adherence to site emergency protocol.
+- In emergencies, security should secure scenes, preserve evidence, and maintain communication with supervisors and responders.
+
+Module Seven - Health and Safety
+- Hazard recognition is central to preventing injuries and unsafe conditions on shift.
+- Health and safety duties include identifying risks, using controls, and reporting unsafe conditions promptly.
+- Personal protective equipment should be used correctly when tasks or environments require it.
+- Shift scheduling and rest requirements affect fatigue risk and decision quality on duty.
+- Health and safety incidents should be documented and escalated according to policy.
+""".strip()

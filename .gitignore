@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 __pycache__/
 *.pyc
+
+# Backend build artifact
+backend/deploy.zip
