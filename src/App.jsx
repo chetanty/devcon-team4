@@ -205,6 +205,17 @@ function App() {
     setSelectedLanguage(languageCode)
   }
 
+  const handleLanguageReset = () => {
+    setSelectedLanguage('')
+    setActiveTab('lesson')
+
+    try {
+      window.localStorage.removeItem(STORAGE_KEYS.selectedLanguage)
+    } catch {
+      // Ignore storage errors so users can still switch language in restricted contexts.
+    }
+  }
+
   const handleQuestionAnswered = (isCorrect) => {
     if (isCorrect) {
       setXp((currentXp) => {
@@ -296,9 +307,16 @@ function App() {
             <h1>GuardBuddy AI</h1>
             <p className="subtitle">Your AI trainer for Alberta Security Guard exam</p>
           </div>
-          <span className="language-chip">
+          <button
+            type="button"
+            className="language-chip language-chip-button"
+            onClick={handleLanguageReset}
+            aria-label="Change language"
+            title="Change language"
+          >
             {activeLanguage?.flag} {activeLanguage?.label}
-          </span>
+            <span className="language-chip-action">Change</span>
+          </button>
         </header>
 
         <nav className="tabs-row" aria-label="Mode Selection">

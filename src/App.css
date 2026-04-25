@@ -141,6 +141,9 @@ h2 {
 }
 
 .language-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   border-radius: 999px;
   border: 1px solid #f0d26d;
   background: #1a1f3c;
@@ -149,6 +152,28 @@ h2 {
   font-size: 0.82rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.language-chip-button {
+  cursor: pointer;
+  font: inherit;
+}
+
+.language-chip-button:hover {
+  background: #26326f;
+}
+
+.language-chip-button:focus-visible {
+  outline: 2px solid #f5c518;
+  outline-offset: 2px;
+}
+
+.language-chip-action {
+  border-left: 1px solid rgba(245, 197, 24, 0.45);
+  padding-left: 0.45rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .tabs-row {
