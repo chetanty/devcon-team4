@@ -471,6 +471,27 @@ body {
   transform: translateY(-1px);
 }
 
+
+.answer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.voice-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #111827;
+  color: white;
+}
+
+.voice-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .mode-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;

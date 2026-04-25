@@ -180,7 +180,7 @@ Generate 5 multiple choice questions as JSON only, no markdown, no extra text:
 
 Rules:
 - correct is zero-based index 0-3
-- Respond in {language_label}
+- Respond in English only
 - Return JSON only, no extra text
 - Every question must be answerable from the manual excerpt
 """.strip()
@@ -220,35 +220,16 @@ def lambda_handler(event, context):
     except (ValueError, json.JSONDecodeError):
         return _response(400, {"error": "Invalid JSON request body."})
 
-    language = str(body.get("language", "english")).strip().lower()
-
-    if language not in set(get_available_languages()):
-        return _response(400, {"error": "language must match a language key in content.json"})
-
-    # Questions mode
-    mode = str(body.get("mode", "")).strip().lower()
-    if mode == "questions":
-        try:
-            questions = _handle_questions(language)
-            return _response(200, {"questions": questions})
-        except Exception as exc:
-            print(f"Question generation failed: {exc}")
-            return _response(500, {"error": "Unable to generate questions right now."})
-
-    # Normal chat mode
-    message = _coerce_message(body)
-    if not message:
-        return _response(400, {"error": "message is required"})
-    # Handle Polly text-to-speech requests from the manual reader.
+    # 🔊 Polly TTS FIRST
     if body.get("action") == "tts":
         text = body.get("text")
-        language = str(body.get("language", "english")).strip().lower()
 
         if not text:
-            return _response(400, {"error": "text is required for tts action"})
+            return _response(400, {"error": "text is required for tts"})
 
         try:
-            audio_data = synthesize_speech(text, language)
+            audio_data = synthesize_speech(text, "english")
+
             return {
                 "statusCode": 200,
                 "headers": {
@@ -258,31 +239,37 @@ def lambda_handler(event, context):
                 "body": base64.b64encode(audio_data).decode("utf-8"),
                 "isBase64Encoded": True
             }
-        except Exception as exc:
-            print(f"Polly synthesis failed: {exc}")
-            return _response(500, {"error": "Unable to generate audio right now."})
 
+        except Exception as e:
+            print(f"Polly error: {e}")
+            return _response(500, {"error": "Polly failed"})
+
+    # 🧠 Questions mode
     mode = str(body.get("mode", "")).strip().lower()
+
+    if mode == "questions":
+        try:
+            questions = _handle_questions("english")
+            return _response(200, {"questions": questions})
+        except Exception as e:
+            print(f"Questions error: {e}")
+            return _response(500, {"error": "Failed to generate questions"})
+
+    # 🧠 Chat mode
     topic = str(body.get("topic", "")).strip()
 
-    if mode not in MODE_INSTRUCTIONS:
-        return _response(400, {"error": "mode must be one of: explain, quiz, scenario"})
-
-    prompt = _build_prompt(message, language, excerpt_result["excerpt"])
     if not topic:
         return _response(400, {"error": "topic is required"})
+
+    if mode not in MODE_INSTRUCTIONS:
+        return _response(400, {"error": "mode must be explain, quiz, scenario"})
 
     prompt = _build_prompt(mode, topic)
 
     try:
-        answer = _invoke_bedrock(prompt)
-    except Exception as exc:
-        print(f"Bedrock invocation failed: {exc}")
-        return _response(500, {"error": "Unable to generate answer right now."})
+        answer = invoke_model_text(prompt, max_tokens=800)
+    except Exception as e:
+        print(f"Bedrock error: {e}")
+        return _response(500, {"error": "AI failed"})
 
-    return _response(200, {
-        "answer": answer,
-        "sourceTitles": excerpt_result["source_titles"],
-        "sourceLanguage": excerpt_result["language"],
-        "modelId": DEFAULT_MODEL_ID,
-    })
+    return _response(200, {"answer": answer})

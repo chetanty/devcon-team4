@@ -88,7 +88,7 @@ function App() {
   const [questionIndex, setQuestionIndex] = useState(0)
   const [gameOver, setGameOver] = useState(() => readStoredInteger(STORAGE_KEYS.hearts, 3, 0, 3) === 0)
   const [activeTab, setActiveTab] = useState('lesson')
-
+  const [voiceLoading, setVoiceLoading] = useState(false)
   const [topic, setTopic] = useState('')
   const [answer, setAnswer] = useState('')
   const [error, setError] = useState('')
@@ -166,6 +166,45 @@ function App() {
       setLoadingQuestions(false)
     }
   }
+
+  const playVoice = async (text) => {
+  if (!text?.trim()) return
+
+  if (!endpoint) {
+    setError('VITE_API_URL is missing. Add it to your .env file and restart Vite.')
+    return
+  }
+
+  setVoiceLoading(true)
+  setError('')
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'tts',
+        text,
+        language: selectedLanguage || 'english',
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Voice generation failed.')
+    }
+
+    const audioBlob = await response.blob()
+    const audioUrl = URL.createObjectURL(audioBlob)
+    const audio = new Audio(audioUrl)
+
+    audio.onended = () => URL.revokeObjectURL(audioUrl)
+    await audio.play()
+  } catch (err) {
+    setError(err.message || 'Unable to play voice.')
+  } finally {
+    setVoiceLoading(false)
+  }
+}
 
   const runMode = async (mode) => {
     const cleanTopic = topic.trim()
@@ -426,7 +465,18 @@ function App() {
                     {answerIcon ? <span className="answer-icon">{answerIcon}</span> : null}
                     <h2>{t.aiResponse}</h2>
                   </div>
-                  <span className="mode-chip">{MODE_META[answerMode]?.label || 'Response'}</span>
+                  <div className="answer-actions">
+  <button
+    type="button"
+    className="voice-button"
+    onClick={() => playVoice(answer)}
+    disabled={voiceLoading}
+  >
+    {voiceLoading ? '🔄 Loading voice...' : '🔊 Play Voice'}
+  </button>
+
+  <span className="mode-chip">{MODE_META[answerMode]?.label || 'Response'}</span>
+</div>
                 </div>
                 <div className="answer-content">
                   {answerBlocks.map((block, blockIndex) => {
