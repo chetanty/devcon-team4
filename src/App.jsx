@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import LessonCard from './components/LessonCard'
-import questions from './questions.json'
 import './App.css'
 import translations from './translations.js'
 
@@ -81,10 +80,9 @@ function App() {
   const [xp, setXp] = useState(() => readStoredInteger(STORAGE_KEYS.xp, 0, 0, 99))
   const [level, setLevel] = useState(() => readStoredInteger(STORAGE_KEYS.level, 1, 1, 9999))
   const [hearts, setHearts] = useState(() => readStoredInteger(STORAGE_KEYS.hearts, 3, 0, 3))
-  const [questionIndex, setQuestionIndex] = useState(() => {
-    const maxIndex = Math.max(questions.length - 1, 0)
-    return readStoredInteger(STORAGE_KEYS.questionIndex, 0, 0, maxIndex)
-  })
+  const [questions, setQuestions] = useState([])
+  const [loadingQuestions, setLoadingQuestions] = useState(false)
+  const [questionIndex, setQuestionIndex] = useState(0)
   const [gameOver, setGameOver] = useState(() => readStoredInteger(STORAGE_KEYS.hearts, 3, 0, 3) === 0)
   const [activeTab, setActiveTab] = useState('lesson')
 
@@ -153,6 +151,37 @@ function App() {
     setQuestionIndex(0)
   }, [questionIndex, totalQuestions])
 
+  useEffect(() => {
+  if (selectedLanguage && questions.length === 0 && !loadingQuestions) {
+    fetchQuestions(selectedLanguage)
+  }
+}, [selectedLanguage])
+
+  const fetchQuestions = async (lang) => {
+    const targetLang = lang || selectedLanguage || 'english'
+    if (!endpoint) return
+    setLoadingQuestions(true)
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'questions',
+          language: targetLang,
+        }),
+      })
+      const data = await response.json()
+      if (data.questions && data.questions.length > 0) {
+        setQuestions(data.questions)
+        setQuestionIndex(0)
+      }
+    } catch (err) {
+      console.error('Failed to fetch questions', err)
+    } finally {
+      setLoadingQuestions(false)
+    }
+  }
+
   const runMode = async (mode) => {
     const cleanTopic = topic.trim()
 
@@ -209,6 +238,7 @@ function App() {
 
   const handleLanguageSelection = (languageCode) => {
     setSelectedLanguage(languageCode)
+    fetchQuestions(languageCode)
   }
 
   const handleLanguageReset = () => {
@@ -252,7 +282,7 @@ function App() {
   const handleRestartAfterGameOver = () => {
     setHearts(3)
     setGameOver(false)
-    setQuestionIndex(0)
+    fetchQuestions()
   }
 
   const answerIcon =
@@ -353,7 +383,11 @@ function App() {
         ) : null}
 
         {!gameOver && activeTab === 'lesson' ? (
-          currentQuestion ? (
+          loadingQuestions ? (
+            <section className="empty-state">
+              <p>{t.loadingQuestions || 'Loading questions...'}</p>
+            </section>
+          ) : currentQuestion ? (
             <LessonCard
               question={currentQuestion}
               questionNumber={questionIndex + 1}

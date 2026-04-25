@@ -2,6 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D']
 
+const DEFAULT_T = {
+  question: 'Question',
+  of: 'of',
+  correct: '✅ Correct!',
+  incorrect: '❌ Wrong!',
+  correctAnswer: 'Correct answer:',
+}
+
 function LessonCard({
   question,
   questionNumber,
@@ -10,6 +18,7 @@ function LessonCard({
   onAdvance,
   t,
 }) {
+  const translations = t || DEFAULT_T
   const [selectedIndex, setSelectedIndex] = useState(null)
   const [isCorrect, setIsCorrect] = useState(false)
   const timerRef = useRef(null)
@@ -22,7 +31,7 @@ function LessonCard({
       window.clearTimeout(timerRef.current)
       timerRef.current = null
     }
-  }, [question?.id])
+  }, [question?.id, question?.question])
 
   useEffect(() => {
     return () => {
@@ -32,44 +41,30 @@ function LessonCard({
     }
   }, [])
 
-  if (!question) {
+  if (!question || !question.options || question.options.length === 0) {
     return null
   }
 
   const handleOptionClick = (optionIndex) => {
-    if (selectedIndex !== null) {
-      return
-    }
+    if (selectedIndex !== null) return
 
     const answerIsCorrect = optionIndex === question.correct
-
     setSelectedIndex(optionIndex)
     setIsCorrect(answerIsCorrect)
 
-    if (onAnswer) {
-      onAnswer(answerIsCorrect)
-    }
+    if (onAnswer) onAnswer(answerIsCorrect)
 
     timerRef.current = window.setTimeout(() => {
-      if (onAdvance) {
-        onAdvance()
-      }
+      if (onAdvance) onAdvance()
     }, 1500)
   }
 
   const getButtonClassName = (optionIndex) => {
-    if (selectedIndex === null) {
-      return 'lesson-option'
-    }
-
+    if (selectedIndex === null) return 'lesson-option'
     if (optionIndex === question.correct) {
       return `lesson-option is-correct ${selectedIndex === optionIndex ? 'flash-green' : ''}`
     }
-
-    if (optionIndex === selectedIndex) {
-      return 'lesson-option is-wrong flash-red'
-    }
-
+    if (optionIndex === selectedIndex) return 'lesson-option is-wrong flash-red'
     return 'lesson-option is-disabled'
   }
 
@@ -79,7 +74,7 @@ function LessonCard({
   return (
     <section className="lesson-card">
       <p className="lesson-progress">
-        {t.question} {questionNumber} {t.of} {totalQuestions}
+        {translations.question} {questionNumber} {translations.of} {totalQuestions}
       </p>
 
       <h2 className="lesson-question">{question.question}</h2>
@@ -87,7 +82,7 @@ function LessonCard({
       <div className="lesson-options" role="group" aria-label="Answer options">
         {question.options.map((option, optionIndex) => (
           <button
-            key={`${question.id}-${optionIndex}-${option}`}
+            key={`${optionIndex}-${option}`}
             type="button"
             className={getButtonClassName(optionIndex)}
             onClick={() => handleOptionClick(optionIndex)}
@@ -101,10 +96,12 @@ function LessonCard({
 
       {selectedIndex !== null ? (
         <div className={`lesson-feedback ${isCorrect ? 'correct' : 'wrong'}`}>
-          <p className="feedback-title">{isCorrect ? t.correct : t.incorrect}</p>
+          <p className="feedback-title">
+            {isCorrect ? translations.correct : translations.incorrect}
+          </p>
           {!isCorrect ? (
             <p className="feedback-line">
-              {t.correctAnswer} {correctLabel}) {correctText}
+              {translations.correctAnswer} {correctLabel}) {correctText}
             </p>
           ) : null}
           <p className="feedback-line">{question.explanation}</p>
